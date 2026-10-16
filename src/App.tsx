@@ -9,7 +9,8 @@ import {
   Share2, 
   Copy, 
   Check, 
-  ArrowLeft
+  ArrowLeft,
+  X
 } from 'lucide-react';
 
 // User-provided image assets
@@ -89,19 +90,35 @@ export default function App() {
   const [copiedLink, setCopiedLink] = useState(false);
   const [copiedHash, setCopiedHash] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [isMobile, setIsMobile] = useState<boolean>(true);
+  const [showMobileModal, setShowMobileModal] = useState<boolean>(false);
 
   const currentPlatform = PLATFORMS[selectedPlatform];
 
-  // Auto detect platform on mount
+  // Auto detect platform and check if mobile
   useEffect(() => {
-    if (typeof window !== 'undefined' && navigator.userAgent) {
+    if (typeof window !== 'undefined') {
       const ua = navigator.userAgent.toLowerCase();
-      if (/iphone/.test(ua)) {
+      const isPhone = /iphone/.test(ua);
+      const isTablet = /ipad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isAndroid = /android/.test(ua);
+
+      if (isPhone) {
         setSelectedPlatform('iphone');
-      } else if (/ipad/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1)) {
+      } else if (isTablet) {
         setSelectedPlatform('ipad');
-      } else if (/android/.test(ua)) {
+      } else if (isAndroid) {
         setSelectedPlatform('android');
+      }
+
+      // Check if real mobile / tablet device
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini|mobile|crios|windows phone/i;
+      const isTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const mobileDetected = mobileRegex.test(ua) || (window.innerWidth <= 768 && isTouch);
+
+      setIsMobile(mobileDetected);
+      if (!mobileDetected) {
+        setShowMobileModal(true);
       }
     }
   }, []);
@@ -155,6 +172,11 @@ MOD FEATURES INCLUDED:
 
   // Start connecting step
   const handleStartDownload = () => {
+    if (!isMobile) {
+      setShowMobileModal(true);
+      return;
+    }
+
     setCurrentScreen('connecting');
     setConnectionProgress(15);
     setStatusMessage('> Locating compatible package on server...');
@@ -488,6 +510,70 @@ MOD FEATURES INCLUDED:
         </footer>
 
       </main>
+
+      {/* Mobile Verification Modal (Exact Match to Screenshot) */}
+      {showMobileModal && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+          <div className="relative bg-[#323e4d] border-t-[3px] border-[#00e676] rounded-[28px] sm:rounded-[32px] p-6 sm:p-8 max-w-lg w-full shadow-2xl animate-fade-in">
+            
+            {/* Top Protruding Green Badge: "● VERIFICATION REQUIRED" */}
+            <div className="absolute -top-3.5 left-1/2 -translate-x-1/2 bg-[#00e676] text-white text-[11px] font-black tracking-wider px-5 py-1.5 rounded-full shadow-[0_4px_16px_rgba(0,230,118,0.5)] flex items-center gap-2 whitespace-nowrap">
+              <span className="w-2 h-2 rounded-full bg-white/90"></span>
+              <span>VERIFICATION REQUIRED</span>
+            </div>
+
+            {/* Close Button in top right */}
+            <button
+              onClick={() => setShowMobileModal(false)}
+              className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors p-1 rounded-lg cursor-pointer"
+              aria-label="Close"
+            >
+              <X className="w-5 h-5" />
+            </button>
+
+            {/* Inner Content Grid */}
+            <div className="flex items-center justify-between gap-6 pt-2">
+              <div className="flex-1 pr-1">
+                <h3 className="text-2xl sm:text-3xl font-extrabold text-white leading-tight">
+                  Mobile not <span className="text-[#00e676]">detected</span>
+                </h3>
+                <p className="text-slate-200 text-sm sm:text-base mt-3 leading-relaxed font-normal">
+                  Please open this site in your phone to start downloading your game.
+                </p>
+              </div>
+
+              {/* Padlock Icon Matching Screenshot */}
+              <div className="shrink-0 flex items-center justify-center">
+                <svg className="w-20 h-24 sm:w-24 sm:h-28 drop-shadow-md" viewBox="0 0 100 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Shackle */}
+                  <path 
+                    d="M26 56V34C26 20.7452 36.7452 10 50 10C63.2548 10 74 20.7452 74 34V56" 
+                    stroke="#e2e8f0" 
+                    strokeWidth="13" 
+                    strokeLinecap="round"
+                  />
+                  <path 
+                    d="M26 56V34C26 20.7452 36.7452 10 50 10C63.2548 10 74 20.7452 74 34V56" 
+                    stroke="#94a3b8" 
+                    strokeWidth="6" 
+                    strokeLinecap="round"
+                  />
+                  {/* Lock Body */}
+                  <rect x="10" y="48" width="80" height="64" rx="16" fill="#f59e0b" />
+                  {/* Right 3D Shade */}
+                  <path d="M72 48H74C82.8366 48 90 55.1634 90 64V96C90 104.837 82.8366 112 74 112H72V48Z" fill="#d97706" />
+                  {/* Keyhole */}
+                  <circle cx="50" cy="74" r="7" fill="#1e293b" />
+                  <path d="M46.5 76L45 92H55L53.5 76H46.5Z" fill="#1e293b" />
+                </svg>
+              </div>
+            </div>
+
+
+
+          </div>
+        </div>
+      )}
 
     </div>
   );
